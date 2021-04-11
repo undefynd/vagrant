@@ -6,13 +6,30 @@ require 'rbconfig'
 
 vagrant_hosts = ENV['VAGRANT_ENV'] ? ENV['VAGRANT_ENV'] : 'vagrant-server.yaml'
 servers = YAML.load_file(File.join(__dir__, vagrant_hosts))
+DEFAULT_BOX = "ubuntu/focal64"
 
+VAGRANTFILE_API_VERSION = "2"
 
-Vagrant.configure("2") do |config|
-  
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+
+  # |
+  # | :::::: Vagrant Plugins
+  # |
+  config.vagrant.plugins = [{"vagrant-vbguest" => {"version" => "0.28.0"}}, {"landrush" => {"version" => "1.3.2"}}]
+
+  if Vagrant.has_plugin?("vagrant-vbguest")
+    config.vbguest.auto_update = servers["vagrant-vbguest"]||= true
+  end
+
+  if Vagrant.has_plugin?("landrush")
+    config.landrush.enabled = servers["landrush"]["enabled"]
+    config.landrush.guest_redirect_dns = servers["landrush"]["guest_redirect_dns"]
+    config.landrush.tld = servers["landrush"]["tld"]
+  end
+
   servers["hosts"].each do |server|
     config.vm.define server["name"] do |srv|
-      srv.vm.box = server["box"] 
+      srv.vm.box = server["box"] ||= DEFAULT_BOX
 
       # |
       # | :::::: Box
