@@ -221,7 +221,47 @@ SCRIPT
       end
 
       # |
-      # | :::::: Provisions - Salt
+      # | :::::: Provisions - Puppet
+      # |
+      if server["puppet"]
+        srv.vm.provision :puppet do |puppet|
+          if server["puppet"]["modules"]
+            puppet.module_path = server["puppet"]["modules"]
+          end
+          if server["puppet"]["manifests_path"]
+            puppet.manifests_path = server["puppet"]["manifests_path"]
+          end
+          if server["puppet"]["manifests_file"]
+            puppet.manifest_file = server["puppet"]["manifests_file"]
+          end
+        end
+      end
+
+      # |
+      # | :::::: Provisions - Ansible
+      # |
+      if server["ansible"]
+        srv.vm.provision :ansible do |ansible|
+          if server["ansible"]["verbose"]
+            ansible.verbose = server["ansible"]["verbose"]
+          end
+          if server["ansible"]["playbook"]
+            ansible.playbook = server["ansible"]["playbook"]
+          end
+          if server["ansible"]["inventory_path"]
+            ansible.inventory_path = server["ansible"]["inventory_path"]
+          end
+          if server["ansible"]["host_key_checking"]
+            ansible.host_key_checking = server["ansible"]["host_key_checking"]
+          end
+          if server["ansible"]["limit"]
+            ansible.limit = server["ansible"]["limit"]
+          end
+        end
+      end
+
+      # |
+      # | :::::: Provisions - SaltStack
       # |
       if server["salt"]
         srv.vm.provision :salt do |salt|
