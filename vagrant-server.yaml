@@ -11,6 +11,24 @@ landrush:
   guest_redirect_dns: true
   tld: "vagrant.test"
 
+salt_master_conf: &master_conf
+  install_master: true
+  no_minion: false
+  install_type: "stable"
+  verbose: true
+  colorize: true
+  bootstrap_options: "-P -c /tmp"
+  salt_master: salt
+  python_version: "3"
+
+salt_minionn_conf: &minion_conf
+  install_type: "stable"
+  verbose: true
+  colorize: true
+  bootstrap_options: "-P -c /tmp"
+  salt_master: salt
+  python_version: "3"
+
 hosts:
   - name: salt.vagrant.test
     box_check_update: true
@@ -27,5 +45,24 @@ hosts:
         guest: "/srv/pillar/"
       - host: "saltstack/salt/"
         guest: "/srv/salt/"
+    salt: *master_conf
+  - name: minion01.vagrant.test
+    box: *vagrant_box
+    box_check_update: true
+    ram: "auto"
+    cpus: "1"
+    private_network:
+      - ip_private: "192.168.10.6"
+        auto_config: true
+    salt: *minion_conf
+  - name: minion02.vagrant.test
+    box: *vagrant_box
+    box_check_update: true
+    ram: "auto"
+    cpus: "1"
+    private_network:
+      - ip_private: "192.168.10.7"
+        auto_config: true
+    salt: *minion_conf
 
 ...

@@ -199,6 +199,92 @@ SCRIPT
         srv.vm.provision "shell", inline: $script
       end
 
+# | ············································································
+# | : Provisioning
+# | ············································································
 
+      # |
+      # | :::::: Provisions - Bash
+      # |
+      if server["bash"]
+        srv.vm.provision :shell, :path => server["bash"]
+      end
 
+      # |
+      # | :::::: Provisions - files
+      # |
+      if server["files"]
+        server["files"].each do |files|
+          srv.vm.provision "file", source: files["source"], destination: files["destination"]
+          srv.vm.boot_timeout = 240
+        end
+      end
+
+      # |
+      # | :::::: Provisions - Salt
+      # |
+      if server["salt"]
+        srv.vm.provision :salt do |salt|
+          if server["salt"]["install_master"]
+            salt.install_master = server["salt"]["install_master"]
+          end
+          if server["salt"]["install_type"]
+            salt.install_type = server["salt"]["install_type"]
+          else
+            salt.install_type = "stable"
+          end
+          if server["salt"]["no_minion"]
+            salt.no_minion = ["salt"]["no_minion"]
+          end
+          if server["salt"]["install_syncdir"]
+            salt.install_syncdir = ["salt"]["install_syncdir"]
+          end
+          if server["salt"]["install_type"] == "git" and ["salt"]["install_args"] != "develop"
+            salt.install_args = ["salt"]["install_args"]
+          end
+          if server["salt"]["always_install"]
+            salt.always_install  = ["salt"]["always_install"]
+          end
+          if server["salt"]["bootstrap_script"]
+            salt.bootstrap_script = ["salt"]["bootstrap_script"]
+          end
+          if server["salt"]["bootstrap_script"] and server["salt"]["bootstrap_options"]
+            salt.bootstrap_script = ["salt"]["bootstrap_options"]
+          end
+          if server["salt"]["version"]
+            salt.version = server["salt"]["version"]
+          end
+          if server["salt"]["python_version"]
+            salt.python_version = server["salt"]["python_version"]
+          end
+          if server["salt"]["run_highstate"]
+            salt.run_highstate = server["salt"]["run_highstate"]
+          end
+          if server["salt"]["colorize"]
+            salt.colorize = server["salt"]["colorize"]
+          end
+          if server["salt"]["log_level"]
+            salt.log_level = server["salt"]["log_level"]
+          end
+          if server["salt"]["verbose"]
+            salt.verbose = server["salt"]["verbose"]
+          end
+        end
+        salt_master = server["salt"]["salt_master"]
+        srv.trigger.after [:up, :provision, :reload] do |tu|
+          tu.name = "accept all keys"
+          tu.info = "accept minion key on master"
+          tu.run = {inline: "vagrant ssh #{salt_master} -- while true; do sudo /usr/bin/salt-key -l unaccepted | grep #{server["name"]}; if [[ $? -eq 0 ]]; then sudo /usr/bin/salt-key -y -A; break; else sudo /usr/bin/salt-key -l accepted | grep #{server["name"]}; if [[ $? -eq 0 ]]; then break; else continue; fi; fi;  done; "}
+        end
+        server_name = server["name"]
+        if server["name"] != server["salt"]["salt_master"]
+          srv.trigger.after :destroy do |td|
+            td.name = "remove keys"
+            td.info = "remove minion key on master after destroy"
+            td.run = {inline: "vagrant ssh #{salt_master} -- sudo /usr/bin/salt-key -y -d #{server_name}"}
+          end
+        end
+      end
+    end
+  end
 end
