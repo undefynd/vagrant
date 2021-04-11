@@ -72,7 +72,7 @@ hosts:
       manifests_file: "default.pp"
 ```
 
-### SaltStack
+### SaltStack:
 
 ```yaml
 salt_master_conf: &master_conf
