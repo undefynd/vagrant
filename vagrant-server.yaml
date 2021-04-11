@@ -1,9 +1,9 @@
 ---
-# |                              ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
+# |-------------------------------------------|
 machine_ram: &machine_ram "1024" # auto, 1024
 machine_cpu: &machine_cpu "1" # auto, 1
 vagrant_box: &vagrant_box "ubuntu/focal64"
-# |
+# |-------------------------------------------|
 
 vagrant-vbguest: false
 landrush:
