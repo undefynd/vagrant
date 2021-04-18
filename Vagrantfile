@@ -7,6 +7,7 @@ require 'rbconfig'
 vagrant_hosts = ENV['VAGRANT_ENV'] ? ENV['VAGRANT_ENV'] : 'vagrant-server.yaml'
 servers = YAML.load_file(File.join(__dir__, vagrant_hosts))
 DEFAULT_BOX = "ubuntu/focal64"
+DEFAULT_BRIDGE = "en0: WLAN (Wireless)"
 
 VAGRANTFILE_API_VERSION = "2"
 
@@ -23,8 +24,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   if Vagrant.has_plugin?("landrush")
     config.landrush.enabled = servers["landrush"]["enabled"]
-    config.landrush.guest_redirect_dns = servers["landrush"]["guest_redirect_dns"]
-    config.landrush.tld = servers["landrush"]["tld"]
+    config.landrush.guest_redirect_dns = servers["landrush"]["guest_redirect_dns"] ||= true
+    config.landrush.tld = servers["landrush"]["tld"] ||= "vagrant.test"
   end
 
   servers["hosts"].each do |server|
@@ -99,6 +100,11 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       # |
       # | :::::: Network
       # |
+
+      # |
+      # | :::::: Private
+      # |
+      
       if server["private_network"]
         server['private_network'].each do |private_network|
           if private_network["ip_private"] && private_network["auto_config"]
@@ -115,19 +121,19 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         end
       end
 
-      if defined? server["public_network"]["ip_public"]
-        if server["public_network"]["ip_public"] == "auto"
-            srv.vm.network "public_network"
-        elsif server["public_network"]["ip_public"] == "true"
-            srv.vm.network "public_network",
-                use_dhcp_assigned_default_route: true
-        elsif server["public_network"]["ip_public"] && server["public_network"]["bridge"]
-            srv.vm.network "public_network",
-                ip:     server["public_network"]["ip_public"],
-                bridge: server["public_network"]["bridge"]
-        else
-            srv.vm.network "public_network",
-                ip: server["public_network"]["ip_public"]
+      # |
+      # | :::::: Public
+      # |
+      
+      if server["public_network"]
+        server['public_network'].each do |public_network|
+          if public_network["use_dhcp_assigned_default_route"]
+            srv.vm.network "public_network", use_dhcp_assigned_default_route: public_network["use_dhcp_assigned_default_route"], auto_config: public_network["auto_config"] ||= true, bridge: public_network["bridge"] ||= DEFAULT_BRIDGE
+          elsif public_network["ip_public"]
+            srv.vm.network "public_network", auto_config: public_network["auto_config"] ||= true, ip: public_network["ip_public"] , bridge: public_network["bridge"] ||= DEFAULT_BRIDGE
+          else
+            srv.vm.network "public_network", auto_config: public_network["auto_config"] ||= true, bridge: public_network["bridge"] ||= DEFAULT_BRIDGE
+          end
         end
       end
 
