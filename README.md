@@ -20,6 +20,26 @@ Default VM values on different Host OS's:
 Vagrant will take 1/8 of the total RAM when `ram: auto`.
 To change the amount of cpu cores a VM gets set `cpus: integer_value` in `vagrant-hosts.yaml`. 
 
+
+## Simple VM
+
+```yaml
+hosts:
+  - name: simple.vagrant.test"
+    box_check_update: false
+    ram: '1024'
+    cpus: '1'
+    private_network:
+      - type: dhcp
+    public_network:
+      - auto_config: true
+      - auto_config: true
+        use_dhcp_assigned_default_route: true
+      - ip_public: "192.168.2.150"
+        bridge: "en0: WLAN (Wireless)"  
+```
+
+
 ## Examples for provisioners
 
 ### Ansible:
@@ -82,7 +102,7 @@ salt_master_conf: &master_conf
   verbose: true
   colorize: true
   bootstrap_options: "-P -c /tmp"
-  salt_master: salt
+  salt_master: salt.vagrant.test
   python_version: "3"
 
 salt_minionn_conf: &minion_conf
@@ -90,7 +110,7 @@ salt_minionn_conf: &minion_conf
   verbose: true
   colorize: true
   bootstrap_options: "-P -c /tmp"
-  salt_master: salt
+  salt_master: salt.vagrant.test
   python_version: "3"
 
 hosts:
