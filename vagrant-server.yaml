@@ -18,7 +18,7 @@ salt_master_conf: &master_conf
   verbose: true
   colorize: true
   bootstrap_options: "-P -c /tmp"
-  salt_master: salt
+  salt_master: salt.vagrant.test
   python_version: "3"
 
 salt_minionn_conf: &minion_conf
@@ -26,7 +26,7 @@ salt_minionn_conf: &minion_conf
   verbose: true
   colorize: true
   bootstrap_options: "-P -c /tmp"
-  salt_master: salt
+  salt_master: salt.vagrant.test
   python_version: "3"
 
 hosts:
@@ -36,9 +36,6 @@ hosts:
     ram: "auto"
     private_network:
       - ip_private: "192.168.10.5"
-        auto_config: true
-      - type: dhcp
-      - ip_private: "192.168.5.10"
         auto_config: true
     syncDir:
       - host: "saltstack/pillar/"
@@ -64,5 +61,5 @@ hosts:
       - ip_private: "192.168.10.7"
         auto_config: true
     salt: *minion_conf
-
+    
 ...
