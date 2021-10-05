@@ -109,14 +109,14 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         server['private_network'].each do |private_network|
           if private_network["ip_private"] && private_network["auto_config"]
             srv.vm.network "private_network",
-                ip:  private_network["ip_private"],
-                auto_config: private_network["auto_config"]
+            ip:  private_network["ip_private"],
+            auto_config: private_network["auto_config"]
           elsif private_network["ip_private"]
             srv.vm.network "private_network",
-                ip: private_network["ip_private"]
+            ip: private_network["ip_private"]
           else private_network["type"]
             srv.vm.network "private_network",
-                type: private_network["type"]
+            type: private_network["type"]
           end
         end
       end
@@ -128,11 +128,19 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       if server["public_network"]
         server['public_network'].each do |public_network|
           if public_network["use_dhcp_assigned_default_route"]
-            srv.vm.network "public_network", use_dhcp_assigned_default_route: public_network["use_dhcp_assigned_default_route"], auto_config: public_network["auto_config"] ||= true, bridge: public_network["bridge"] ||= DEFAULT_BRIDGE
+            srv.vm.network "public_network", 
+            use_dhcp_assigned_default_route: public_network["use_dhcp_assigned_default_route"], 
+            auto_config: public_network["auto_config"] ||= true, 
+            bridge: public_network["bridge"] ||= DEFAULT_BRIDGE
           elsif public_network["ip_public"]
-            srv.vm.network "public_network", auto_config: public_network["auto_config"] ||= true, ip: public_network["ip_public"] , bridge: public_network["bridge"] ||= DEFAULT_BRIDGE
+            srv.vm.network "public_network", 
+            auto_config: public_network["auto_config"] ||= true, 
+            ip: public_network["ip_public"], 
+            bridge: public_network["bridge"] ||= DEFAULT_BRIDGE
           else
-            srv.vm.network "public_network", auto_config: public_network["auto_config"] ||= true, bridge: public_network["bridge"] ||= DEFAULT_BRIDGE
+            srv.vm.network "public_network", 
+            auto_config: public_network["auto_config"] ||= true, 
+            bridge: public_network["bridge"] ||= DEFAULT_BRIDGE
           end
         end
       end
@@ -208,6 +216,19 @@ SCRIPT
 # | ············································································
 # | : Provisioning
 # | ············································································
+      # |
+      # | :::::: Provision - Cloud_init
+      # |
+      if server["cloud_init"]
+        config.vm.cloud_init :user_data do |cloud_init|
+          cloud_init.content_type = server["cloud_init"]["content_type"]
+          if cloud_init.path = server["cloud_init"]["path"] and not cloud_init.inline = server["cloud_init"]["inline"]
+            cloud_init.path = server["cloud_init"]["path"]
+          end
+          if cloud_init.inline = server["cloud_init"]["inline"] and not cloud_init.path = server["cloud_init"]["path"]
+            cloud_init.inline = server["cloud_init"]["inline"]
+          end
+      end
 
       # |
       # | :::::: Provisions - Bash
