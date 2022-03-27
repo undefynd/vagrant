@@ -6,13 +6,25 @@ require 'rbconfig'
 
 vagrant_hosts = ENV['VAGRANT_ENV'] ? ENV['VAGRANT_ENV'] : 'vagrant-server.yaml'
 servers = YAML.load_file(File.join(__dir__, vagrant_hosts))
-DEFAULT_BOX = "ubuntu/focal64"
-DEFAULT_BRIDGE = "en0: WLAN (Wireless)"
 
+DEFAULT_BOX = "bento/ubuntu-20.04"
+DEFAULT_BRIDGE = "en0: WLAN (Wireless)"
+DEFAULT_VM_MEMORY = 1024
+DEFAULT_VM_CPU = 1
 VAGRANTFILE_API_VERSION = "2"
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
+  #|
+  #| Provider order
+  #|
+  if servers["provider"]
+    config.vm.provider servers["provider"]
+  else
+    config.vm.provider "parallels"
+    config.vm.provider "vmware_fusion"
+    config.vm.provider "virtualbox"
+  end
   # |
   # | :::::: Vagrant Plugins
   # |
@@ -46,7 +58,30 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
       # | ············································································
       # | :::::: VM Setup
-      # | ············································································
+      # |············································································
+
+      # |
+      # | Generate Default Memory
+      # |
+
+        if defined? server["ram"]
+          if server["ram"] == "auto"
+            host = RbConfig::CONFIG['host_os']
+            if host =~ /darwin/
+              ram = `sysctl -n hw.memsize`.to_i / 1024 / 1024 / 8
+            elsif host =~ /linux/
+              ram = `grep 'MemTotal' /proc/meminfo | sed -e 's/MemTotal://' -e 's/ kB//'`.to_i / 1024 / 8
+            else
+              ram = 1024
+            end
+          end
+        else
+          ram = server["ram"]
+        end
+
+      # |
+      # | :::::: Virtualbox 
+      # |
 
       srv.vm.provider "virtualbox" do |vb|
         vb.name = server["name"]
@@ -55,41 +90,36 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
           vb.gui      = server["gui"]
         end
 
-        vb.customize ["modifyvm", :id, "--usb", "off"]
-        vb.customize ["modifyvm", :id, "--usbehci", "off"]
-
-        vb.customize ["modifyvm", :id, "--nictype1", "virtio"]
-        vb.customize ["modifyvm", :id, "--nictype2", "virtio"]
-        vb.customize ["modifyvm", :id, "--natdnsproxy1", "on"]
-        vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
-        #vb.customize ["modifyvm", :id, "--natdnshostresolver2", "on"]
-
-        if server["gui"]
-          vb.gui = server["gui"]
-        end
-        if defined? server["ram"]
-          if server["ram"] == "auto"
-            host = RbConfig::CONFIG['host_os']
-            if host =~ /darwin/
-              mem = `sysctl -n hw.memsize`.to_i / 1024 / 1024 / 8
-            elsif host =~ /linux/
-              mem = `grep 'MemTotal' /proc/meminfo | sed -e 's/MemTotal://' -e 's/ kB//'`.to_i / 1024 / 8
-            else
-              mem = 1024
-            end
-            vb.memory = mem
-          else
-            vb.memory = server["ram"]
+        if server["customize"]
+          server["customize"].each do |option, state|
+            vb.customize ["modifyvm", :id, "--#{option}", "#{state}"]
           end
-        else
-          vb.memory = 512
         end
-        if server["cpus"]
-          vb.cpus   = server["cpus"]
-        else
-          vb.cpus = 2
+
+        vb.memory = ram ||= DEFAULT_VM_MEMORY
+        vb.cpus   = server["cpus"] ||= DEFAULT_VM_CPU
+        
+      end
+
+      # | 
+      # | :::::: Paralells
+      # |
+
+      srv.vm.provider "parallels" do | prl |
+        prl.name = server["name"]
+        prl.linked_clone = server["linked_clone"] ||= false
+        prl.update_guest_tools = server["update_guest_tools"] ||= false
+        
+        prl.memory = ram ||= DEFAULT_VM_MEMORY
+        prl.cpus   = server["cpus"] ||= DEFAULT_VM_CPU
+        
+        if server["customize"]
+          server["customize"].each do |option, state|
+            prl.customize ["set", :id, "--#{option}", "#{state}"]
+          end
         end
       end
+
 # Check if a specific hostname is set else set the name of the vm
       if server["hostname"]
         srv.vm.hostname = server["hostname"]
@@ -193,20 +223,17 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 # | SSH Key Deploy
 # |············································································
 $script = <<-'SCRIPT'
-for i in $(find /home/vagrant/.ssh -name *.pub); do
-  grep -f $i /home/vagrant/.ssh/authorized_keys
-  if [[ $? -eq 1 ]]; then
-    cat $i >> /home/vagrant/.ssh/authorized_keys
-  fi
+for sshkey in $(find /home/vagrant/.ssh -name *.pub); do
+  grep -f $sshkey /home/vagrant/.ssh/authorized_keys || cat $i >> /home/vagrant/.ssh/authorized_keys
 done
 SCRIPT
 
       if server["ssh"]
-        for i in server["ssh"] do
-          if i.include? "/"
-            srv.vm.provision "file", source: "#{i}" , destination: "/home/vagrant/.ssh/"
+        for key in server["ssh"] do
+          if key.include? "/"
+            srv.vm.provision "file", source: "#{key}" , destination: "/home/vagrant/.ssh/"
           else
-            srv.vm.provision "file", source: "~/.ssh/#{i}", destination: "/home/vagrant/.ssh/#{i}"
+            srv.vm.provision "file", source: "~/.ssh/#{key}", destination: "/home/vagrant/.ssh/#{key}"
           end 
           srv.vm.boot_timeout = 240
         end
@@ -220,7 +247,7 @@ SCRIPT
       # | :::::: Provision - Cloud_init
       # |
       if server["cloud_init"]
-        config.vm.cloud_init :user_data do |cloud_init|
+        srv.vm.cloud_init :user_data do |cloud_init|
           cloud_init.content_type = server["cloud_init"]["content_type"]
           if cloud_init.path = server["cloud_init"]["path"] and not cloud_init.inline = server["cloud_init"]["inline"]
             cloud_init.path = server["cloud_init"]["path"]
@@ -228,6 +255,7 @@ SCRIPT
           if cloud_init.inline = server["cloud_init"]["inline"] and not cloud_init.path = server["cloud_init"]["path"]
             cloud_init.inline = server["cloud_init"]["inline"]
           end
+        end
       end
 
       # |
