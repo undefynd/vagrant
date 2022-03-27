@@ -1,13 +1,13 @@
 # A Vagrantfile to rule them all
 
-The Default Box used in this VAGRANTFILE is `Ubuntu/focal64`.
+The Default Box used in this VAGRANTFILE is `bento/ockylinux-8.5`.
 
-By Default the Vagrantfile will check for the host definition file called `vagrant-hosts.yaml` in the current directory.
-This behavior can be changed by setting the `VAGRANT_HOSTS` environment variable.
+By Default the Vagrantfile will check for the host definition file called `vagrant-server.yaml` in the current directory.
+This behavior can be changed by setting the `VAGRANT_HOSTS` environment variable to point to a different test enviornment file in YAML format.
 
 For example like this:
 
-`export VAGRANT_ENV="../../saltstack/vagrant-hosts.yaml`.
+`export VAGRANT_ENV="../../saltstack/vagrant-server.yaml`.
 
 Default VM values on different Host OS's:
 
@@ -18,7 +18,9 @@ Default VM values on different Host OS's:
 |Linux | 2 | 1024MB - 8192MB|
 
 Vagrant will take 1/8 of the total RAM when `ram: auto`.
-To change the amount of cpu cores a VM gets set `cpus: integer_value` in `vagrant-hosts.yaml`. 
+To change the amount of cpu cores a VM gets set `cpus: integer_value` in `vagrant-server.yaml`. 
+
+This `Vagrantfile` supports Parallels and Virtualbox as providors.
 
 
 ## Simple VM
@@ -35,7 +37,7 @@ hosts:
       - auto_config: true
       - auto_config: true
         use_dhcp_assigned_default_route: true
-      - ip_public: "192.168.2.150"
+      - ip_public: "192.168.10.150"
         bridge: "en0: WLAN (Wireless)"  
 ```
 
@@ -51,7 +53,7 @@ hosts:
     ram: '1024'
     cpus: '1'
     private_network:
-      - ip_private: '192.168.5.10'
+      - ip_private: '192.168.10.10'
         auto_config: true
     ansible:
       limit: "all"
@@ -67,7 +69,7 @@ hosts:
     ram: '1024'
     cpus: '1'
     private_network:
-      - ip_private: '192.168.5.10'
+      - ip_private: '192.168.10.11'
         auto_config: true
     bash: "test.sh"
     files:
@@ -84,7 +86,7 @@ hosts:
     ram: '1024'
     cpus: '1'
     private_network:
-      - ip_private: '192.168.6.10'
+      - ip_private: '192.168.10.12'
         auto_config: true
     puppet:
       modules: "puppet/modules"
@@ -122,7 +124,7 @@ hosts:
       - ip_private: "192.168.10.5"
         auto_config: true
       - type: dhcp
-      - ip_private: "192.168.5.10"
+      - ip_private: "192.168.11.10"
         auto_config: true
     syncDir:
       - host: "saltstack/pillar/"
