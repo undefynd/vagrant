@@ -64,20 +64,20 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       # | Generate Default Memory
       # |
 
-        if defined? server["ram"]
-          if server["ram"] == "auto"
-            host = RbConfig::CONFIG['host_os']
-            if host =~ /darwin/
-              ram = `sysctl -n hw.memsize`.to_i / 1024 / 1024 / 8
-            elsif host =~ /linux/
-              ram = `grep 'MemTotal' /proc/meminfo | sed -e 's/MemTotal://' -e 's/ kB//'`.to_i / 1024 / 8
-            else
-              ram = 1024
-            end
+      if defined? server["ram"]
+        if server["ram"] == "auto"
+          host = RbConfig::CONFIG['host_os']
+          if host =~ /darwin/
+            ram = `sysctl -n hw.memsize`.to_i / 1024 / 1024 / 8
+          elsif host =~ /linux/
+            ram = `grep 'MemTotal' /proc/meminfo | sed -e 's/MemTotal://' -e 's/ kB//'`.to_i / 1024 / 8
+          else
+            ram = 1024
           end
-        else
-          ram = server["ram"]
         end
+      else
+        ram = server["ram"]
+      end
 
       # |
       # | :::::: Virtualbox 

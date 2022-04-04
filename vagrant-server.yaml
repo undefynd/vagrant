@@ -2,8 +2,10 @@
 # |-------------------------------------------|
 machine_ram: &machine_ram "1024" # auto, 1024
 machine_cpu: &machine_cpu "1" # auto, 1
-vagrant_box: &vagrant_box "ubuntu/focal64"
+vagrant_box: &vagrant_box "bento/ubuntu-20.04"
 # |-------------------------------------------|
+
+provider: "virtualbox"
 
 vagrant-vbguest: false
 landrush:
@@ -29,13 +31,26 @@ salt_minionn_conf: &minion_conf
   salt_master: salt.vagrant.test
   python_version: "3"
 
+customize_virtualbox: &cvb
+  usb: "off"
+  usbehci: "off"  
+  nictype1: "virtio"
+  nictype2: "virtio"
+  natdnsproxy1: "on"
+  natdnshostresolver1: "on"
+
+customize_parallels: &cprl
+  longer-battery-life: "on"
+
 hosts:
   - name: salt.vagrant.test
     box_check_update: true
     box: *vagrant_box
     ram: "auto"
+    ssh:
+      - "~/.ssh/id_rsa.pub"
     private_network:
-      - ip_private: "192.168.10.5"
+      - ip_private: "192.168.58.5"
         auto_config: true
     syncDir:
       - host: "saltstack/pillar/"
@@ -48,8 +63,10 @@ hosts:
     box_check_update: true
     ram: "auto"
     cpus: "1"
+    ssh:
+      - "~/.ssh/id_rsa.pub"
     private_network:
-      - ip_private: "192.168.10.6"
+      - ip_private: "192.168.58.6"
         auto_config: true
     salt: *minion_conf
   - name: minion02.vagrant.test
@@ -57,9 +74,11 @@ hosts:
     box_check_update: true
     ram: "auto"
     cpus: "1"
+    ssh:
+      - "~/.ssh/id_rsa.pub"
     private_network:
-      - ip_private: "192.168.10.7"
+      - ip_private: "192.168.58.7"
         auto_config: true
     salt: *minion_conf
-    
+
 ...
